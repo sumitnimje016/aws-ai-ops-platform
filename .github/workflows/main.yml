@@ -1,4 +1,4 @@
-name: AWS OIDC Test
+name: AWS Terraform
 
 on:
   push:
@@ -10,8 +10,12 @@ permissions:
   contents: read
 
 jobs:
-  aws-auth-test:
+  terraform:
+    name: Terraform
     runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: ap-south-1
 
     steps:
       - name: Checkout
@@ -21,7 +25,22 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: arn:aws:iam::335523638530:role/GitHubActions-AWS-AIOps
-          aws-region: ap-south-1
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Verify AWS identity
         run: aws sts get-caller-identity
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init
+
+      - name: Terraform Validate
+        working-directory: terraform
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: terraform
+        run: terraform plan
