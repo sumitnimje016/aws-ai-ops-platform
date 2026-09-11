@@ -1,69 +1,47 @@
-terraform {
-  required_version = ">= 1.12.0"
+name: AWS Terraform
 
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 6.0"
-    }
-  }
-}
+on:
+  push:
+    branches:
+      - main
 
-provider "aws" {
-  region = "ap-south-1"
+permissions:
+  id-token: write
+  contents: read
 
-  default_tags {
-    tags = {
-      Project     = "AWS-AI-Ops-Platform"
-      Environment = "dev"
-      ManagedBy   = "Terraform"
-    }
-  }
-}
+jobs:
+  terraform:
+    name: Terraform
+    runs-on: ubuntu-latest
 
-resource "aws_vpc" "main" {
-  cidr_block           = "10.20.0.0/16"
-  enable_dns_support   = true
-  enable_dns_hostnames = true
+    env:
+      AWS_REGION: ap-south-1
 
-  tags = {
-    Name = "aws-ai-ops-vpc"
-  }
-}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-resource "aws_subnet" "public" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.20.1.0/24"
-  availability_zone       = "ap-south-1a"
-  map_public_ip_on_launch = true
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: arn:aws:iam::335523638530:role/GitHubActions-AWS-AIOps
+          aws-region: ${{ env.AWS_REGION }}
 
-  tags = {
-    Name = "aws-ai-ops-public-subnet"
-  }
-}
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
 
-resource "aws_internet_gateway" "main" {
-  vpc_id = aws_vpc.main.id
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init
 
-  tags = {
-    Name = "aws-ai-ops-igw"
-  }
-}
+      - name: Terraform Format Check
+        working-directory: terraform
+        run: terraform fmt -check
 
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.main.id
+      - name: Terraform Validate
+        working-directory: terraform
+        run: terraform validate
 
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.main.id
-  }
-
-  tags = {
-    Name = "aws-ai-ops-public-rt"
-  }
-}
-
-resource "aws_route_table_association" "public" {
-  subnet_id      = aws_subnet.public.id
-  route_table_id = aws_route_table.public.id
-}
+      - name: Terraform Plan
+        working-directory: terraform
+        run: terraform plan
