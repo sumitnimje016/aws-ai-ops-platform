@@ -1,47 +1,96 @@
-name: AWS Terraform
+terraform {
+  required_version = ">= 1.6.0"
 
-on:
-  push:
-    branches:
-      - main
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 6.0"
+    }
+  }
+}
 
-permissions:
-  id-token: write
-  contents: read
+provider "aws" {
+  region = var.aws_region
+}
 
-jobs:
-  terraform:
-    name: Terraform
-    runs-on: ubuntu-latest
+resource "aws_vpc" "main" {
+  cidr_block           = var.vpc_cidr
+  enable_dns_support   = true
+  enable_dns_hostnames = true
 
-    env:
-      AWS_REGION: ap-south-1
+  tags = {
+    Name        = "aws-ai-ops-vpc"
+    Project     = "aws-ai-ops-platform"
+    Environment = "dev"
+  }
+}
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+resource "aws_internet_gateway" "main" {
+  vpc_id = aws_vpc.main.id
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v5
-        with:
-          role-to-assume: arn:aws:iam::335523638530:role/GitHubActions-AWS-AIOps
-          aws-region: ${{ env.AWS_REGION }}
+  tags = {
+    Name = "aws-ai-ops-igw"
+  }
+}
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+resource "aws_subnet" "public" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = var.public_subnet_cidr
+  availability_zone       = var.availability_zone
+  map_public_ip_on_launch = true
 
-      - name: Terraform Init
-        working-directory: terraform
-        run: terraform init
+  tags = {
+    Name = "aws-ai-ops-public-subnet"
+  }
+}
 
-      - name: Terraform Format Check
-        working-directory: terraform
-        run: terraform fmt -check
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
 
-      - name: Terraform Validate
-        working-directory: terraform
-        run: terraform validate
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
+  }
 
-      - name: Terraform Plan
-        working-directory: terraform
-        run: terraform plan
+  tags = {
+    Name = "aws-ai-ops-public-rt"
+  }
+}
+
+resource "aws_route_table_association" "public" {
+  subnet_id      = aws_subnet.public.id
+  route_table_id = aws_route_table.public.id
+}
+
+resource "aws_security_group" "web" {
+  name        = "aws-ai-ops-web-sg"
+  description = "Security group for AWS AI Ops web workloads"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    description = "HTTP"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "HTTPS"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "aws-ai-ops-web-sg"
+  }
+}
