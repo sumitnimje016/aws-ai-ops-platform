@@ -133,3 +133,29 @@ resource "aws_security_group" "web" {
     Name = "aws-ai-ops-web-sg"
   }
 }
+
+# -------------------------
+# EC2 Instance
+# -------------------------
+
+resource "aws_instance" "ai_ops" {
+  ami                    = "ami-0f918f7e67a3323f0"
+  instance_type          = "t3.micro"
+  subnet_id              = aws_subnet.public.id
+  vpc_security_group_ids = [aws_security_group.web.id]
+
+  associate_public_ip_address = true
+
+  root_block_device {
+    volume_size = 8
+    volume_type = "gp3"
+    encrypted   = true
+  }
+
+  tags = {
+    Name        = "aws-ai-ops-ec2"
+    Project     = "aws-ai-ops-platform"
+    Environment = "dev"
+    Role        = "ai-ops"
+  }
+}
