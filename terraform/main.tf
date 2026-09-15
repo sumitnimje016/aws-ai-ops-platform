@@ -14,6 +14,14 @@ provider "aws" {
 }
 
 # -------------------------
+# Amazon Linux 2023 AMI
+# -------------------------
+
+data "aws_ssm_parameter" "amazon_linux" {
+  name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
+}
+
+# -------------------------
 # VPC
 # -------------------------
 
@@ -25,7 +33,7 @@ resource "aws_vpc" "main" {
   tags = {
     Name        = "aws-ai-ops-vpc"
     Project     = "aws-ai-ops-platform"
-    Environment = "dev"
+    Environment = var.environment
   }
 }
 
@@ -139,8 +147,9 @@ resource "aws_security_group" "web" {
 # -------------------------
 
 resource "aws_instance" "ai_ops" {
-  ami                    = "ami-0f918f7e67a3323f0"
-  instance_type          = "t3.micro"
+  ami           = data.aws_ssm_parameter.amazon_linux.value
+  instance_type = var.instance_type
+
   subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.web.id]
 
@@ -155,7 +164,7 @@ resource "aws_instance" "ai_ops" {
   tags = {
     Name        = "aws-ai-ops-ec2"
     Project     = "aws-ai-ops-platform"
-    Environment = "dev"
+    Environment = var.environment
     Role        = "ai-ops"
   }
 }
