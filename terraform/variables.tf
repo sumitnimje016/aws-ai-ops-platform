@@ -33,3 +33,25 @@ variable "availability_zone" {
   type        = string
   default     = "ap-south-1a"
 }
+
+# -------------------------
+# EC2
+# -------------------------
+
+variable "instance_type" {
+  description = "EC2 instance type"
+  type        = string
+  default     = "t3.micro"
+}
+
+variable "ami_id" {
+  description = "Amazon Linux 2023 AMI ID"
+  type        = string
+  default     = "ami-0f58b397bc5c1f2e8"
+}
+
+variable "key_name" {
+  description = "EC2 key pair name"
+  type        = string
+  default     = ""
+}
