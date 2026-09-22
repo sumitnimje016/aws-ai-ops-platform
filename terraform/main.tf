@@ -143,12 +143,62 @@ resource "aws_security_group" "web" {
 }
 
 # -------------------------
+# IAM Role for EC2 / SSM
+# -------------------------
+
+resource "aws_iam_role" "ec2_ssm" {
+  name = "aws-ai-ops-ec2-ssm-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+
+    Statement = [
+      {
+        Effect = "Allow"
+
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = {
+    Name        = "aws-ai-ops-ec2-ssm-role"
+    Project     = "aws-ai-ops-platform"
+    Environment = var.environment
+  }
+}
+
+# -------------------------
+# Attach SSM Managed Policy
+# -------------------------
+
+resource "aws_iam_role_policy_attachment" "ec2_ssm" {
+  role       = aws_iam_role.ec2_ssm.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+# -------------------------
+# EC2 Instance Profile
+# -------------------------
+
+resource "aws_iam_instance_profile" "ec2_ssm" {
+  name = "aws-ai-ops-ec2-ssm-profile"
+  role = aws_iam_role.ec2_ssm.name
+}
+
+# -------------------------
 # EC2 Instance
 # -------------------------
 
 resource "aws_instance" "ai_ops" {
   ami           = data.aws_ssm_parameter.amazon_linux.value
   instance_type = var.instance_type
+
+  iam_instance_profile = aws_iam_instance_profile.ec2_ssm.name
 
   subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.web.id]
