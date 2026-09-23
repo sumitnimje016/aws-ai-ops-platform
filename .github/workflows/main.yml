@@ -18,6 +18,8 @@ jobs:
 
     env:
       AWS_REGION: ap-south-1
+      ECR_REPOSITORY: aws-ai-ops-app
+      ECR_REGISTRY: 335523638530.dkr.ecr.ap-south-1.amazonaws.com
 
     steps:
       - name: Checkout
@@ -31,6 +33,21 @@ jobs:
 
       - name: Verify AWS identity
         run: aws sts get-caller-identity
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }} \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:latest \
+            ./app
+
+      - name: Push Docker image
+        run: |
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
