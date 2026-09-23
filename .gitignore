@@ -1,0 +1,15 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+*.tfplan
+
+# Secrets
+.env
+*.pem
+*.key
+.aws/
+
+# Ansible
+*.retry

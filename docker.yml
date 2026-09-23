@@ -1,0 +1,21 @@
+---
+- name: Configure Docker on AWS AI Ops host
+  hosts: localhost
+  become: true
+  tasks:
+
+    - name: Ensure Docker service is enabled and running
+      ansible.builtin.systemd:
+        name: docker
+        enabled: true
+        state: started
+
+    - name: Verify Docker service
+      ansible.builtin.command:
+        cmd: systemctl is-active docker
+      register: docker_status
+      changed_when: false
+
+    - name: Display Docker status
+      ansible.builtin.debug:
+        msg: "Docker service status: {{ docker_status.stdout }}"
