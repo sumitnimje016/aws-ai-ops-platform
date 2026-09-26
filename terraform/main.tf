@@ -191,6 +191,15 @@ resource "aws_iam_role_policy_attachment" "ec2_ecr_read" {
 }
 
 # -------------------------
+# Attach CloudWatch Agent Policy
+# -------------------------
+
+resource "aws_iam_role_policy_attachment" "ec2_cloudwatch_agent" {
+  role       = aws_iam_role.ec2_ssm.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+
+# -------------------------
 # EC2 Instance Profile
 # -------------------------
 
